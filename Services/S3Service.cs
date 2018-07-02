@@ -54,7 +54,7 @@ namespace YoutubeDownloader.Services
         public void DeleteAll(string fileName)
         {
             var allowedDeleteExtension = new [] { "srt", "mp3", "mp4", "webm" };
-            foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory))
+            foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory + "/.."))
             {
                 var targetFileName = Path.GetFileName(file);
                 if (targetFileName.StartsWith(fileName) && allowedDeleteExtension.Contains(targetFileName.Split(".").LastOrDefault()))
