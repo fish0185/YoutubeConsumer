@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.Runtime;
@@ -11,6 +12,8 @@ using JustSaying.Messaging;
 using JustSaying.Messaging.MessageHandling;
 using JustSaying.Models;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Sinks.Elasticsearch;
 using YoutubeDownloader.Messages;
 using YoutubeDownloader.Services;
 
@@ -20,21 +23,29 @@ namespace YoutubeDownloader
     {
         static void Main(string[] args)
         {
-           
+            ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             var containerBuilder = new ContainerBuilder();
             var container = ConfigContainer(containerBuilder).Build();
 
             //container.Resolve<IMessagePublisher>().PublishAsync(new YoutubeDownloadCommand { Url = "https://google.com" }).Wait();
            
-            Console.ReadKey();
+            manualResetEvent.WaitOne();
             Console.WriteLine("done");
         }
 
         private static ContainerBuilder ConfigContainer(ContainerBuilder containerBuilder)
         {
+            Log.Logger = new LoggerConfiguration()
+                            .Enrich.FromLogContext()
+                            .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9090") ){
+                                    AutoRegisterTemplate = true,
+                                    AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv6
+                            })
+                            .WriteTo.Console()
+                            .CreateLogger();
             CreateMeABus.DefaultClientFactory = () =>
                 new DefaultAwsClientFactory();
-            var loggerFactory = new LoggerFactory().AddConsole();
+            var loggerFactory = new LoggerFactory().AddSerilog();
             containerBuilder.RegisterInstance(loggerFactory).AsImplementedInterfaces().SingleInstance();
             containerBuilder.RegisterGeneric(typeof(Logger<>)).As(typeof(ILogger<>)).WithParameter("factory", loggerFactory);
             containerBuilder.RegisterType<HandlerResolver>().AsImplementedInterfaces();

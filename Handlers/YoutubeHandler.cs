@@ -5,11 +5,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-
 using JustSaying.Messaging.MessageHandling;
-
 using Microsoft.Extensions.Logging;
-
 using YoutubeDownloader.Messages;
 using YoutubeDownloader.Services;
 
@@ -35,9 +32,10 @@ namespace YoutubeDownloader.Handlers
 
             if (TryProcessDownloadMp3(message.Url, out var filename))
             {
+               _logger.LogInformation($"Uploading {filename}.mp3 to S3.");
                await _storageService.Upload(filename + ".mp3");
                _storageService.DeleteAll(filename);
-
+               _logger.LogInformation($"Delete files completed.");
                return true;
             }
 
@@ -48,6 +46,7 @@ namespace YoutubeDownloader.Handlers
         {
             try
             {
+                _logger.LogInformation($"Start process url: {url}");
                 Console.InputEncoding = Encoding.UTF8;
                 Console.OutputEncoding = Encoding.UTF8;
                 var workingDir = Directory.GetCurrentDirectory();
@@ -82,6 +81,7 @@ namespace YoutubeDownloader.Handlers
                     var filenameWithExtension = fileNameLine.Substring(11).TrimEnd('.').Trim();
                     var index = filenameWithExtension.LastIndexOf('.');
                     var filename = filenameWithExtension.Substring(0, index);
+                     _logger.LogInformation($"Converting {filename} to mp3.");
                     var startInfo2 = new ProcessStartInfo
                     {
                         CreateNoWindow = false,
