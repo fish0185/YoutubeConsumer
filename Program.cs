@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using JustSaying.AwsTools;
 using JustSaying.Messaging;
 using JustSaying.Messaging.MessageHandling;
 using JustSaying.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Sinks.Elasticsearch;
@@ -35,9 +37,15 @@ namespace YoutubeDownloader
 
         private static ContainerBuilder ConfigContainer(ContainerBuilder containerBuilder)
         {
+            var builder = new ConfigurationBuilder()
+                                .SetBasePath(Directory.GetCurrentDirectory())
+                                .AddJsonFile("appsettings.json")
+                                .AddEnvironmentVariables();
+            var configuration = builder.Build();
+            var esUrl = configuration["elasticsearch"];
             Log.Logger = new LoggerConfiguration()
                             .Enrich.FromLogContext()
-                            .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9090") ){
+                            .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(esUrl) ){
                                     AutoRegisterTemplate = true,
                                     AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv6
                             })
@@ -77,7 +85,8 @@ namespace YoutubeDownloader
                 .AsClosedTypesOf(typeof(IHandlerAsync<>));
             containerBuilder.RegisterInstance(new AmazonS3Client(FallbackCredentialsFactory.GetCredentials(), RegionEndpoint.APSoutheast2)).AsImplementedInterfaces().SingleInstance();
             containerBuilder.RegisterType<S3Service>().AsImplementedInterfaces();
-
+            containerBuilder.RegisterInstance(configuration).AsImplementedInterfaces();
+            
             return containerBuilder;
         }
     }

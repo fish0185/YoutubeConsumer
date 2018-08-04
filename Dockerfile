@@ -21,4 +21,4 @@ RUN pip3 install you-get \
 WORKDIR /consumer
 COPY . .
 
-ENTRYPOINT [ "dotnet", "publish/YoutubeDownloader.dll" ]
+ENTRYPOINT [ "dotnet", "public/YoutubeDownloader.dll" ]
